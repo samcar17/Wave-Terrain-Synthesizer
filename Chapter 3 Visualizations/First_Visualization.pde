@@ -1,13 +1,12 @@
+//NOTE: This was a very brief visualization test that I did at the beginning of the process, while I was still figuring wave terrain out.
+//As such, this could definitely be implemented more efficiently and clearly, but it exists here to document the development process.
+//See the second visualization and the final Teensy implementation for better implementations. 
+
 import netP5.*;
 import oscP5.*;
 
 OscP5 oscp5; //memory for the OSC sender
 NetAddress myRemoteLocation; //the address we're sending to
-
-//ControlP5 cp5;
-
-//float sliderValue = 0.025;
-//Slider abc;
 
 int cols, rows;
 int scl = 8; //20 for triangles
@@ -16,15 +15,11 @@ int h = 1024;
 int waveSizeCounter = 0;
 float amplitude = 0.5;
 
-
-float[][] orbArray; // Declare an array
-
-//Orbit Centrepoint
-int xCent = 50;
-int yCent = 50;
+//NOTE: At this point in the project, I was using "orbit" to refer to the trajectory (with reference to Roads). 
+//I use "trajectory" in the thesis. They mean the same thing, though. 
+float[][] orbArray; // 2D array for holding trajectory
 
 float speed = 0.025;
-float blue = 255;
 float saveSpeed = 0;
 boolean pause = false;
 
@@ -64,31 +59,23 @@ void setup(){
   fakeVector = new int[2];
   lastPoint = new PVector(0,0,0);
   for(int i = 0; i < 127; i++){
-    orbitSine[i] = sin(2*PI*i/wavelength);
-    sineMod[i] = sin(2*PI*i/(wavelength));
+    orbitSine[i] = sin(2*PI*i/wavelength); //Creating a sine wave that will be folded over itself to become the trajectory
+    sineMod[i] = sin(2*PI*i/(wavelength)); //Creating another sine wave that will modulate the position of the trajectory
   }
   oscp5 = new OscP5(this, 13002); //connect this instance to this program, listen on 13002 
   myRemoteLocation = new NetAddress("localhost", 13003); //open an address for us to send to
 }
 
 void draw(){
-  
-  xCent--;
-  yCent++;
-  
-  if(xCent > 100){xCent = 0;}
-  if(yCent > 100){yCent = 0;}
-  if(yCent < 0){yCent = 100;}
-  if(xCent < 0){xCent = 100;}
-  
+
   movingVal -= speed;
   
   float yoffset = movingVal;
    for(int y = 0; y < rows; y++){
     float xoffset = movingVal; 
     for(int x = 0; x < cols; x++){
-      //terrain[x][y] = map(noise(xoffset, yoffset), 0, 1, -100, 100);
-      terrain[x][y] = map(sin(2*PI*xoffset/cols)*sin(2*PI*yoffset/rows), -1, 1, -100, 100);
+      //terrain[x][y] = map(noise(xoffset, yoffset), 0, 1, -100, 100); //uncomment for moving terrain based on noise
+      terrain[x][y] = map(sin(2*PI*xoffset/cols)*sin(2*PI*yoffset/rows), -1, 1, -100, 100); //uncomment for terrain based on sine waves that moves according to mouse position
       xoffset += map(mouseX, 0, (width/2), 0.001, 0.99999999); 
      }
      yoffset += map(mouseY, 0, (height/2), 0.001, 0.99999999);
@@ -96,65 +83,60 @@ void draw(){
     
   background(0);
   stroke(255, 60);
-  //noStroke();
-  //noFill(); 
-  fill(map(mouseX, 0, 600, 0, 255), map(mouseY, 0, 600, 0, 255), blue, 30); //30 for triangles
-   translate(width/2, height/2);
-   rotateX(PI/3);
-   rotateY(PI/50);
-   rotateZ(PI/3);
-   translate(-w/0.85, -h/1.008, -w/2);
+  //P3D stuff:
+  translate(width/2, height/2);
+  rotateX(PI/3);
+  rotateY(PI/50);
+  rotateZ(PI/3);
+  translate(-w/0.85, -h/1.008, -w/2);
  
+  //Draw terrain:
   for(int y = 0; y < rows-1; y++){
-    //beginShape(TRIANGLE_STRIP);
     for(int x = 0; x < cols; x++){
-      //vertex(x*scl, y*scl, terrain[x][y]);
-      //vertex(x*scl, (y+1)*scl, terrain[x][y+1]);
-      
-      //This sets the colour of the circle
-      //if(circleCheck(x,y, xCent, yCent)){
-      //  //stroke(255,0,0); 
-      //  //waveform[waveSizeCounter] = terrain[x][y];
-      //  //waveSizeCounter++; 
-      //}
       stroke(255);
-      
       point(x*scl, y*scl, terrain[x][y]);
-
-
-      //point(x*scl, (y+1)*scl);
-      //rect(x*scl, y*scl, scl, scl);
     }
-    //endShape();
   }
   
   boolean goingUp = false;
   int x = 0;
+  //Draw trajectory:
   for(int i = 0; i < 127; i++){
-    //println(x);
+    //Use the trajectory to grab the relevant terrain values and load them into the the wavetable array (waveform[]).
     yOffset = int(yCentre-(yCentre*amplitude));
-    fakeVector[0] = int((((orbitSine[i] + 1.0f) * 0.5 * 126) * amplitude) + int(yOffset));  //fakeVector[0] == fakeVector.y   //+ int(126*(amplitude/2))
-    fakeVector[1] = x+xOffset; //fakeVector[1] == fakeVector.x
+    fakeVector[0] = int((((orbitSine[i] + 1.0f) * 0.5 * 126) * amplitude) + int(yOffset));  
+    fakeVector[1] = x+xOffset; 
     waveform[i] = terrain[int(wrapAroundY(fakeVector[0]))][int(wrapAroundX(fakeVector[1]))];
     stroke(255,0,0); 
     
 
     if(i%turnaround == 0){goingUp = !goingUp;}
 
-    
-    point(wrapAroundY(fakeVector[0])*scl, wrapAroundX(fakeVector[1])*scl, terrain[int(wrapAroundY(fakeVector[0]))][int(wrapAroundX(fakeVector[1]))]);
-    if((lastPoint.x - wrapAroundY(fakeVector[0])*scl) > 900 || (lastPoint.x - wrapAroundY(fakeVector[0])*scl) < -900 || (lastPoint.y - wrapAroundX(fakeVector[1])*scl) > 900 || (lastPoint.y - wrapAroundX(fakeVector[1])*scl) < -900){}
-    else{line(lastPoint.x, lastPoint.y, lastPoint.z, wrapAroundY(fakeVector[0])*scl, wrapAroundX(fakeVector[1])*scl, terrain[int(wrapAroundY(fakeVector[0]))][int(wrapAroundX(fakeVector[1]))]);}
+    //draw trajectory to display:
+    point(wrapAroundY(fakeVector[0])*scl, 
+          wrapAroundX(fakeVector[1])*scl, 
+          terrain[int(wrapAroundY(fakeVector[0]))][int(wrapAroundX(fakeVector[1]))]);
+    if((lastPoint.x - wrapAroundY(fakeVector[0])*scl) > 900 || 
+       (lastPoint.x - wrapAroundY(fakeVector[0])*scl) < -900 || 
+       (lastPoint.y - wrapAroundX(fakeVector[1])*scl) > 900 || 
+       (lastPoint.y - wrapAroundX(fakeVector[1])*scl) < -900){/*do nothing*/}
+    else{
+      line(lastPoint.x, 
+           lastPoint.y, 
+           lastPoint.z, 
+           wrapAroundY(fakeVector[0])*scl, 
+           wrapAroundX(fakeVector[1])*scl, 
+           terrain[int(wrapAroundY(fakeVector[0]))][int(wrapAroundX(fakeVector[1]))]);
+    }
     println((lastPoint.x - wrapAroundY(fakeVector[0])*scl));
-    lastPoint.set(wrapAroundY(fakeVector[0])*scl, wrapAroundX(fakeVector[1])*scl, terrain[int(wrapAroundY(fakeVector[0]))][int(wrapAroundX(fakeVector[1]))]);
+    lastPoint.set(wrapAroundY(fakeVector[0])*scl, 
+                  wrapAroundX(fakeVector[1])*scl, 
+                  terrain[int(wrapAroundY(fakeVector[0]))][int(wrapAroundX(fakeVector[1]))]);
     
     if(goingUp == true){x++;}
     else if(goingUp == false){x--;}
   }
   multiplier = 1;
-  
-  //println(waveSizeCounter);
-  //println(waveform);
   waveSizeCounter = 0;
   OscMessage myMessage = new OscMessage("/waveform");
   myMessage.add(waveform);
@@ -175,6 +157,7 @@ void calcXMod(int centre){
   xOffset = xCentre - (turnaround/2);
 }
 
+//functions for wrapping the trajectory around the terrain at various points
 int wrapAroundX(int x_){
   if(x_ > 126){x_ = (x_ - 126);}
   else if (x_ < 0){x_ = (x_ + 126);}
@@ -188,19 +171,10 @@ float wrapAroundY(float y_){
   else{}
   return y_;
 }
-
-void mousePressed(){
-  speed = map(mouseY, 0, 600, 0.001, 0.099);
-  blue = map(mouseY, 0, 600, 0, 255);
-}
-
-void mouseDragged(){
-  speed = map(mouseY, 0, 600, 0.001, 0.099);
-  blue = map(mouseY, 0, 600, 0, 255);
-}
+//--------------------------------------------------------------------------
 
 void keyPressed(){
-  if(key == ENTER){
+  if(key == ENTER){  //when using the noise terrain, pressing ENTER pauses movement...
     pause = !pause;
     if(pause == true){
       saveSpeed = speed;
@@ -209,11 +183,5 @@ void keyPressed(){
     else if(pause == false){
       speed = saveSpeed;
     }
-  }
-  if(key == CODED){
-    if(keyCode == UP){yCent++;}
-    else if(keyCode == DOWN){yCent--;}
-    else if(keyCode == LEFT){xCent++;}
-    else if(keyCode == RIGHT){xCent--;}
   }
 }
