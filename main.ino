@@ -4,7 +4,6 @@
 #include "settings.h"
 #include "input.h"
 #include "output.h"
-#include "tasks.h" //Probably don't need this file
 
 bool STARTUP = true;
 
@@ -67,7 +66,6 @@ void setup() {
   outs.setHeaders(69, 55, 42); //(terrain, continuous, discrete)
   Serial.println("Setup Finished");
 
-  //tasksInitial();
   delay(3000);
 }
 
