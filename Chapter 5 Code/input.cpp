@@ -128,7 +128,7 @@ void WTSInput::readSwitches(){
     if(joySwitch->update()){
       //This is verified for my PCB, but note that you might need to switch rising and falling edges around if you use a different circuit. 
       if(joySwitch->fallingEdge()){joySwitchEnum = SwitchState::SW_ON;}
-      else if(joySwitch->risingEdge()){joySwitchEnum = SwitchState::SW_OFF;}- 
+      else if(joySwitch->risingEdge()){joySwitchEnum = SwitchState::SW_OFF;} 
     }
         
     //No change deteched so we are either holding the switch or not using it
