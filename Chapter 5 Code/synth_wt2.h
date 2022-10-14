@@ -27,20 +27,20 @@ public:
 
         AudioSynthTerrainReader() : AudioStream(0, NULL){
             //Default Values
-            //trajectoryType(TRAJECTORY_AUDIO); //Telling us which trajectory to choose 
+            //trajectoryType(TRAJECTORY_AUDIO); //Telling us which trajectory to choose - OLD and here for my memory, please ignore
             trajectoryX(0.5);
             trajectoryY(0.5); //Setting trajectory x&y to centre of terrain as default
-            amplitudeTrajectory(0.01); //Usually 0.5
+            amplitudeTrajectory(0.01);
             amplitudeTerrain(0); //Setting amplitude of trajectory and terrain to default values
-            updateFrequency(440.0); //TARGET FREQUENCY DEFAULT - @432Hz ;) 
+            updateFrequency(440.0); //FREQUENCY DEFAULT 
         }
 
-        //TODO: Go through all these input functions and add some safety logic to make sure you don't max/min them out!! 
+        //TODO: Go through all these input functions and add some safety logic to make sure you can't max/min them out!! 
 
         void loadTerrain(int16_t **terrainInput){
             terrainPointer = terrainInput;
             
-            //test loop
+            //test loop during setup - reads a straight line trajectory from a quarter of the way through the terrain. With 2DSINE this should give a sine wave.
             for(int i = 0; i < 1024; i++){
                 wavetable[i] = *(*(terrainPointer+256)+i);
             }
@@ -84,7 +84,7 @@ public:
             Ytraj = trajY;
         }
 
-        //One func 2 rule them all
+        //One method to set everything at once
         void begin(float targetFreq, byte trajType, float trajX, float trajY, float trajAmp, float terrainAmp){
             playhead = 0.0; //Default Value for Playhead - NOTE:: THIS IS A FLOAT
             frequency = targetFreq;
@@ -94,7 +94,7 @@ public:
             _terrainAmplitude = terrainAmp;
             _trajectoryX = trajX;
             _trajectoryY = trajY;
-
+            //Make sure memory is clear for all wavetable arrays
             for(int i = 0; i < TRAJECTORY_RESOLUTION; i++){
                 wavetable[i] = 0;
                 wavetablePrevious[i] = 0;
