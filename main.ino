@@ -30,7 +30,7 @@ const int chipSelect = BUILTIN_SDCARD;
 EXTMEM int16_t terrain[TERRAIN_SIZE][TERRAIN_SIZE]; //Double array
 EXTMEM int16_t intTerrain[TERRAIN_SIZE][TERRAIN_SIZE]; //int array
 EXTMEM int16_t *pointerToTerrain[TERRAIN_SIZE]; //"Surrogate" - i.e. a pointer to all the terrain's pointers
-EXTMEM byte displayTerrain[DISPLAY_TERRAIN_SIZE][DISPLAY_TERRAIN_SIZE]; //PREVIOUSLY EXTMEM
+EXTMEM byte displayTerrain[DISPLAY_TERRAIN_SIZE][DISPLAY_TERRAIN_SIZE]; 
 extern int16_t wavetable[TERRAIN_SIZE];
 //-------------------------------------------------------------------------------------
 
@@ -53,13 +53,13 @@ void setup() {
                             //Teensy forums reckon try double what your max usage is (https://forum.pjrc.com/threads/39245-AudioMemory()-what-parameter-should-I-pass)
  
   //Input Setup
-    ins.beginInput(); 
-    initTerrain();    
+  ins.beginInput(); 
+  initTerrain();    
 
   //DSP Setup
   antiAlias.setLowpass(0, 15000, 0.707); //Setting the antialiasing filter to 15 kHz, no resonance
   tr1.loadTerrain(pointerToTerrain);     //Linking the pointer to the terrain with the DSP submodule
-  tr1.begin(70, 1, 0.0, 0.0, 0.3, 1.0);  //initializing the DSP submodule: (freq, orbit type, orbit x pos, orbit y pos, orbit amplitude, terrain amplitude)
+  tr1.begin(70, 1, 0.0, 0.0, 0.3, 1.0);  //initializing the DSP submodule: (freq, trajectory type, trajectory x pos, trajectory y pos, trajectory amplitude, terrain amplitude)
   
   //Output Setup   
   //Set header bytes for transfer 
@@ -112,14 +112,14 @@ void loop() {
 }
 
 //INPUT -> DSP -> OUTPUT LINKING-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-//This function transfers any live updating params from the input to the output
+//This function transfers any live updating params from the input submodule to the output & DSP submodules
 void inputOutputLink(){
   float postFilter;
 
   //Update our DSP and output values to reflect the new input values
-  tr1.orbitX(ins.paramBank[0]);                   
-  tr1.orbitY(ins.paramBank[1]);                     
-  tr1.amplitudeOrbit(ins.paramBank[3]);           
+  tr1.trajectoryX(ins.paramBank[0]);                   
+  tr1.trajectoryY(ins.paramBank[1]);                     
+  tr1.amplitudeTrajectory(ins.paramBank[3]);           
   tr1.amplitudeTerrain(ins.paramBank[4]);         
   tr1.updateFrequency(ins.paramBank[5]);            
   tr1.setTrajectoryState(ins.getInputMode());     
@@ -222,8 +222,8 @@ void terrainToDisplaySize(){
 void printTable(){
    for(int i = 0; i < 1024; i++){
     int j = terrain[256][i];
-//    int x = tr1.orbitXArray[i];
-//    int y = tr1.orbitYArray[i];
+//    int x = tr1.trajectorytrajectoryXArray[i];
+//    int y = tr1.trajectoryYArray[i];
     Serial.println(j);
 //    Serial.print(x);
 //    Serial.print(", ");
