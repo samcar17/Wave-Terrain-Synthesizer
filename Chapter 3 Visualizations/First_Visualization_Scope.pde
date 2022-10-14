@@ -29,8 +29,10 @@ void setup(){
 }
 
 void draw(){
-  background(0);
-  line(0, 300, 1020, 300);
+  background(0);            //refresh background
+  line(0, 300, 1020, 300);  //draw centreline
+  
+  //draw array to screen
   for(int i = 0; i < arraySize; i++){
     int fixedPointConv = int(map(waveformLocal[i], -100, 100, 0, 600));
     
@@ -43,22 +45,11 @@ void draw(){
       lastPoint[0] = int(map(i, 0, 127, 0, 1020));
       lastPoint[1] = fixedPointConv;
     }
-    
-    //if(i >= map(arraySize-1, 0, 127, 0, 1020)){
-    //  line(lastPoint[0], lastPoint[1], map(arraySize-1, 0, 127, 0, 1020), 300);
-    //  lastPoint[0] = 0;
-    //  lastPoint[1] = 300;
-    //}
   }
-
 }
 
+When a message is recieved, write the data into the waveformLocal array
 void oscEvent(OscMessage waveMsg){
-  /*print the address pattern and the typetag of the recieved OSC message*/
-  //println("reieved and OSCMSG: ");
-  //println("address pattern: " + waveMsg.addrPattern());
-  //println("typetag: " + waveMsg.typetag());\
-  //if(waveMsg.addrPattern() == "/waveform"){
     for(int i = 0; i < arraySize; i++){
       waveformLocal[i] = waveMsg.get(i).floatValue();
     }
