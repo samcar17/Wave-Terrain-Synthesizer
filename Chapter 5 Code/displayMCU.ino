@@ -44,7 +44,7 @@
 #include <ADC_util.h>
 
 ADC *adc = new ADC(); // adc object;
-ST7735_t3 tft = ST7735_t3(TFT_CS, TFT_DC, TFT_RST);
+ST7735_t3 tft = ST7735_t3(TFT_CS, TFT_DC, TFT_RST); //teensy GFX library object
 
 // For 1.54" TFT with ST7789
 //ST7789_t3 tft = ST7789_t3(TFT_CS, TFT_DC, TFT_RST);
@@ -54,7 +54,7 @@ unsigned long currentMillis, startMillis;
 
 //----------------------------------------------------------------------------------------------------STARTUP STUFF
 
-bool STARTUP = true; //Are we in the STARTUP routine rn? 
+bool STARTUP = true; //Are we in the STARTUP routine? 
 bool readyToReadLine = false; //Is our buffer clear and are we ready to read a new line of the terrain?
 bool firstTransferTerrainUpdate = true; //Is this the first transfer of the terrain update?
 byte lineBuffer[TRN_SIZE];
@@ -62,43 +62,43 @@ byte lineCounter;
 
 //----------------------------------------------------------------------------------------------------TERRAINS & TRAJECTORIES
 
-byte currentTerrain[TRN_SIZE][TRN_SIZE];
+byte currentTerrain[TRN_SIZE][TRN_SIZE];  //terrain array
 
-byte currentTrajectoryX[TRAJ_SIZE];
-byte currentTrajectoryY[TRAJ_SIZE];
-byte lastTrajectoryX[TRAJ_SIZE];
+byte currentTrajectoryX[TRAJ_SIZE]; //trajectory x array
+byte currentTrajectoryY[TRAJ_SIZE]; //trajectory y array
+byte lastTrajectoryX[TRAJ_SIZE];    //arrays for storing the previous trajectory's positions
 byte lastTrajectoryY[TRAJ_SIZE];
 byte lastTrajectoryValue[TRAJ_SIZE];
 
-float trajectoryScale = 0.1;
-float joyOffsetX = 0;
+float trajectoryScale = 0.1;        
+float joyOffsetX = 0;         
 float joyOffsetY = 0;
 float joystick[2];
 float cvIns[2];
-float lfoX = -0.99;
-float lfoY = 0.99;
+//float lfoX = -0.99;   //used for testing
+//float lfoY = 0.99;
 
 bool isTrajectoryFixed = true; //false == FREE, true == FIXED
 
-byte testVariable = 0;
+//byte testVariable = 0; //used for testing
 //----------------------------------------------------------------------------------------------------
 
 
 void setup(void) {
-  //pinMode(SD_CS, INPUT_PULLUP);  // don't touch the SD card
-  Serial.begin(9600);
+  
+  Serial.begin(9600);     //Serial for printing out tests
   Serial.print("hello!");
 
-  Serial1.begin(31250);
+  Serial1.begin(31250);   //Serial for comms between MCUs
   Serial1.clear();
   
-  adc->adc0->setAveraging(32); // set number of averages //Used to be 16 - changed to 32 to test and see if it smooths jitter? 
-  adc->adc0->setResolution(8); // set bits of resolution                                  //OK EXPERIMENTAL:: TRYING TO READ JUST 8BITS COS IT'S ALL WE NEED
+  adc->adc0->setAveraging(32); // set number of averages. Used to be 16 - changed to 32 to test and see if it smooths jitter? 
+  adc->adc0->setResolution(8); // set bits of resolution. EXPERIMENTAL:: TRYING TO READ JUST 8BITS BECAUSE IT'S ALL WE NEED
 
-  adc->adc0->setConversionSpeed(ADC_CONVERSION_SPEED::MED_SPEED);// change the conversion speed
-  adc->adc0->setSamplingSpeed(ADC_SAMPLING_SPEED::MED_SPEED); // change the sampling speed
+  adc->adc0->setConversionSpeed(ADC_CONVERSION_SPEED::MED_SPEED);// conversion speed
+  adc->adc0->setSamplingSpeed(ADC_SAMPLING_SPEED::MED_SPEED); // the sampling speed
   
-  // Or use this initializer (uncomment) if you're using a 1.44" TFT (128x128)
+  // Teensy Library: Use this initializer if you're using a 1.44" TFT (128x128)
   tft.initR(INITR_144GREENTAB);
 
   //add offsets to account for my particular screen 
@@ -106,18 +106,18 @@ void setup(void) {
 
   Serial.println("init");
 
-  uint16_t time = millis();
+  //uint16_t time = millis();
   tft.fillScreen(ST7735_BLACK);
-  time = millis() - time;
+  //time = millis() - time;
 
   //Serial.println(time, DEC);
   delay(500);
 
-  tft.setRotation(1);
+  tft.setRotation(1); //Accounts for orientation of display
 
   //calcTerrain();
 
-  // large block of text
+  // "loading" graphic
   tft.fillScreen(ST7735_BLACK);
   drawText("Loading...", ST7735_WHITE);
   //delay(2000);
@@ -125,33 +125,33 @@ void setup(void) {
   //drawTerrain();
   //calcTrajectory();
   //drawTrajectory();
-  delay(4000);
+  delay(4000);  //Wait to make sure DSP MCU is all set up and ready to go
   //delay(10000);
-  startMillis = millis();
+  startMillis = millis(); 
 }
 
 void loop() {
 
-  if(STARTUP == true){
-    listenForHeader();
-    updateTerrain();
+  if(STARTUP == true){    //If in STARTUP state
+    listenForHeader();    //Listen for comms from the DSP MCU
+    updateTerrain();      //Use those comms to update the terrain
   }
 
-  else if(STARTUP == false){
-    //Serial.println("Ya, startup is false so you're probably note recieving any event info");
-    if (Serial1.available()){receiveEvent();}
+  else if(STARTUP == false){                  //If not in STARTUP state...
+    //Serial.println("STARTUP false");        //Used for testing
+    if (Serial1.available()){receiveEvent();} //...and if there's serial data available, then use it to update the trajectory
   }
   
   currentMillis = millis();
-  if(currentMillis - startMillis >= 17){
-    if(STARTUP == false){
+  if(currentMillis - startMillis >= 17){      //17 ms refresh rate for ~60 FPS
+    if(STARTUP == false){                     //If we're not in STARTUP state
       //read cv inputs
-      cvUpdate();
-      calcTrajectory();
-      drawTrajectory();
+      cvUpdate();                             
+      calcTrajectory();                       //Calculate the trajectory based on those inputs
+      drawTrajectory();                       //And then draw it to screen
     }
   }
-  //currentMillis = millis();
+  //currentMillis = millis();                 //OLD: Used for testing
   //if(currentMillis - startMillis >= 100){
     //Serial.println(trajectoryScale);
   //}
@@ -165,20 +165,20 @@ void drawText(const char *text, uint16_t color){
   tft.print(text);
 }
 
-void cvUpdate(){
+void cvUpdate(){    //Read CV inputs and update the array that stores their current values                                     
   byte x, y;
-
+  //read
   x = adc->adc0->analogRead(X_INPUT);
   y = adc->adc0->analogRead(Y_INPUT);
-
-  cvIns[0] = mapflo(x, 0, 255, -0.999, 0.999); //x is [0]
+  //map to floats
+  cvIns[0] = mapflo(x, 0, 255, -0.999, 0.999); //x is [0] 
   cvIns[1] = mapflo(y, 0, 255, -0.999, 0.999); //y is [1]
 }
 
-int16_t colourPacker(uint8_t r, uint8_t g, uint8_t b) {
+int16_t colourPacker(uint8_t r, uint8_t g, uint8_t b) { //Function to use RGB values with the GFX library's colour system
   return ((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3);
 }
-
+//--------------------------------------------------------------------OLD: ONLY HERE FOR MY MEMORY, PLEASE IGNORE
 //void colourTester(){
 //  for(int i = 0; i < 255; i++){
 //    tft.fillScreen(colourPacker(0,0,0));
@@ -187,15 +187,15 @@ int16_t colourPacker(uint8_t r, uint8_t g, uint8_t b) {
 //  }   
 //}
 
-void calcTerrain(){
-  for(int x = 0; x < TRN_SIZE; x++){
-    for(int y = 0; y < TRN_SIZE; y++){
-      currentTerrain[x][y] = map(sin(2*PI*x/TRN_SIZE)*sin(2*PI*y/TRN_SIZE), -1, 1, 255, 0); //Why does this seem to work when it should be a BUG???? The map function shouldn't be taking a float input - when it gets that it should just be giving out "128"???
-      //Serial.println(currentTerrain[x][y]);    
-    }  
-  } 
-}
-
+//void calcTerrain(){
+//  for(int x = 0; x < TRN_SIZE; x++){
+//    for(int y = 0; y < TRN_SIZE; y++){
+//      currentTerrain[x][y] = map(sin(2*PI*x/TRN_SIZE)*sin(2*PI*y/TRN_SIZE), -1, 1, 255, 0); 
+//      //Serial.println(currentTerrain[x][y]);    
+//    }  
+//  } 
+//}
+//----------------------------------------------------------------------------------------------------------------
 void drawTerrain(){
   tft.fillScreen(RED); //ST7735_BLACK
   
@@ -316,12 +316,12 @@ byte getInterpolatedPoint(byte x, byte y){
 
 //----------------------------------------------------------------------------------------------------------INPUTS
 void receiveEvent(){
-//SERIAL------------------------------------------------------ 
+
   //while (Serial.available() > 0) {
-    byte header = Serial1.read();
+    byte header = Serial1.read(); //Read the header value of the transfer
     if(header != HEADER_TERRAIN && header != HEADER_CONTINUOUS && header != HEADER_DISCRETE){Serial1.clear(); return;} //If the header's not one of our specified headers, clear the buffer and exit function
-    //Serial.print("HEADER: ");
-    //Serial.println(header);
+    
+    
     byte in = 0;
     
     switch(header){
@@ -375,11 +375,11 @@ void receiveEvent(){
         if (Serial1.available()){
           in = Serial1.read();
           if(in == 0){isTrajectoryFixed = false;} //0 == FREE TRAJECTORY, so trajectory is NOT fixed
-          else if(in == 1){isTrajectoryFixed = true;}
+          else if(in == 1){isTrajectoryFixed = true;} //1 == FIXED TRAJECTORY
           else{}
         }
         
-        //discrete[2] == trajectory number
+        //discrete[2] == trajectory number. NOTE: PARAM CURRENTLY UNUSED
         if (Serial1.available()){
           in = Serial1.read();
           //Insert processing here... Param unused for now
@@ -405,11 +405,11 @@ void listenForHeader(){
     if(Serial1.available() > 0 && Serial1.available() < 2){     //And if the buffer only has one value in it
       byte value = Serial1.read();
       if(value == HEADER_TERRAIN){                              //And if that one value is the terrain header byte
-        tft.fillScreen(GREEN);
+        tft.fillScreen(GREEN);                                  //Line only used for testing, feel free to delete
         Serial.print("TRN HEADER:   ");
         Serial.println(value);
-        readyToReadLine = true;                                //THEN: Say we're ready for a new line   
-        firstTransferTerrainUpdate = false;                    //Lock off the flag
+        readyToReadLine = true;                                 //THEN: Say we're ready for a new line   
+        firstTransferTerrainUpdate = false;                     //Lock off the flag
         Serial1.clear();                                        //Clear our input buffer in preparation for the new line
         Serial1.write(HEADER_NEWLINE);                          //Tell our DSP MCU that we're ready for the new line 
         Serial1.flush();                                        //Wait to make sure the header transfers correctly and then move on
@@ -444,7 +444,7 @@ void updateTerrain(){
       else if(lineCounter >= TRN_SIZE){                         //BUT, if our line counter is out of the terrain bounds, we're done reading terrain lines
         readyToReadLine = false;                                //...so set the flag to false.
         drawTerrain();                                          //The terrain should be ready to go now, so draw it! 
-        STARTUP = false;                                        //And that brings us to the end of the STARTUP routine so set the flag to false and get on with your life/**3
+        STARTUP = false;                                        //And that brings us to the end of the STARTUP routine so set the flag to false and get on with your life
       }
     }
   }
@@ -452,10 +452,10 @@ void updateTerrain(){
 
 
 //UTILITIES----------------------------------------------------------------------------------------
-float mapflo(float x, float in_min, float in_max, float out_min, float out_max){
+float mapflo(float x, float in_min, float in_max, float out_min, float out_max){ 
   return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }
-//
+
 //map function for doubles
 double mapfd(double x, double in_min, double in_max, double out_min, double out_max){
   return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
