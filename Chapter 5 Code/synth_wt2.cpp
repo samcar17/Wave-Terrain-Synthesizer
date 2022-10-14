@@ -37,7 +37,7 @@ int16_t biLERP(int16_t x1, int16_t x2, double fracx, int16_t xa1, int16_t xa2, d
 
 //--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-//TO DO: Pretty sure updateTrajectory and trajectorySetup do EXACTLY THE SAME THING! Lol, pls remove one
+//TO DO: updateTrajectory and trajectorySetup do EXACTLY THE SAME THING! ;) Can remove one!
 void AudioSynthTerrainReader::trajectorySetup(){
  for(int i = 0; i < TRAJECTORY_RESOLUTION; i++){
     double theta = (PI*2/TRAJECTORY_RESOLUTION);
@@ -77,34 +77,34 @@ void AudioSynthTerrainReader::prepareForPlay(){
 
 void AudioSynthTerrainReader::update(void)
 {
-  audio_block_t *block;
-  double x, y, xFrac, yFrac;
-  int xTrunc, yTrunc, xNextTrunc, yNextTrunc;
+  audio_block_t *block;   
+  double x, y, xFrac, yFrac;  //BiLERP variables
+  int xTrunc, yTrunc, xNextTrunc, yNextTrunc;  //BiLERP variables
   int16_t trajectorySample;
   int16_t wavetableToBlockBuffer[AUDIO_BLOCK_SAMPLES]; //128 sample array output buffer 
   int truncPlayhead, truncPlayheadNext;
   double playheadFrac;
-  //extern int16_t intTerrain[TERRAIN_RESOLUTION][TERRAIN_RESOLUTION]; //BUG ALERT: THIS ISN'T WORKING HOW YOU THOUGHT IT DID!!!!!!!
+  //extern int16_t intTerrain[TERRAIN_RESOLUTION][TERRAIN_RESOLUTION]; //OLD and only here for my memory, please ignore
 
-  //int16_t terrainAudioLib[TERRAIN_RESOLUTION][TERRAIN_RESOLUTION]; //not sure if this is referencing the extern one or not? 
+  //int16_t terrainAudioLib[TERRAIN_RESOLUTION][TERRAIN_RESOLUTION]; //OLD and only here for my memory, please ignore
 
-  if (_terrainAmplitude == 0) {
+  if (_terrainAmplitude == 0) {                 //If the LEVEL control is set to 0, skip everything and wait until it's not
     playhead += freqInc * AUDIO_BLOCK_SAMPLES;
     return;
   }
-  block = allocate(); //This gives you a FRESH BLOCK
-  if (!block) {
-    playhead += freqInc * AUDIO_BLOCK_SAMPLES;
+  block = allocate(); //This gives you a FRESH BLOCK to send to the audio library
+  if (!block) {                                 //If we don't get a block from that command for whatever reason, skip everything and wait until we do
+    playhead += freqInc * AUDIO_BLOCK_SAMPLES; 
     return;
   } 
   
-  //We used to update trajectory inside the following loop. That seemed to be a bit too much? 
-  if(trajectoryInputState != TRAJ_FREE){updateTrajectory();} //Update Trajectory
+  //If we're working with a fixed trajectory, update trajectory before we write the block
+  if(trajectoryInputState != TRAJ_FREE){updateTrajectory();} 
 
   //THIS LOOP READS THE TERRAIN VIA THE TRAJECTORY
   for(int i = 0; i < TRAJECTORY_RESOLUTION; i++){
-    //Iterate wavetable[] write pointer 
-    //Find TerrainVal[x][y] based on current radius and centre 
+    //If terrain is fixed, read from the trajectory stored in the x and y arrays
+    //If the terrain is free, use the live trajectory values being fed to us from inputOutputLink() in main.ino
     if(trajectoryInputState != TRAJ_FREE){
       x = mapdub(trajectoryXArray[i], -1.0, 1.0, 0, TERRAIN_RESOLUTION); //Map our X & Y values onto our terrain
       y = mapdub(trajectoryYArray[i], -1.0, 1.0, 0, TERRAIN_RESOLUTION);  
@@ -150,34 +150,37 @@ void AudioSynthTerrainReader::update(void)
    updateFreqInc();
    
 
-//read from wavetable into block buffer with inc determined by freq 
+    //read from wavetable into block buffer with inc determined by freq 
    for(int i = 0; i < AUDIO_BLOCK_SAMPLES; i++){
     
-    if(playhead >= TRAJECTORY_RESOLUTION-1){
-        playhead = playhead-TRAJECTORY_RESOLUTION;
-    } 
+      if(playhead >= TRAJECTORY_RESOLUTION-1){
+          playhead = playhead-TRAJECTORY_RESOLUTION;
+      } 
 
-    //Setup variables for the frame
-    truncPlayhead = int(playhead);
-    playheadFrac = playhead - truncPlayhead;
-    
-    //Setup lookahead for playhead 
-    if(truncPlayhead + 1 > TRAJECTORY_RESOLUTION){
-        truncPlayheadNext = (truncPlayhead+1) - TRAJECTORY_RESOLUTION;
-    }
-    else{truncPlayheadNext = truncPlayhead+1;}
+      //Setup variables for the frame
+      truncPlayhead = int(playhead);
+      playheadFrac = playhead - truncPlayhead;
 
-    //interpolate between points in wavetable and write to buffer
-    wavetableToBlockBuffer[i] = LERP(wavetableInterpolated[truncPlayhead], 
-                                    wavetableInterpolated[truncPlayheadNext],  
-                                    playheadFrac);
-    playhead = playhead + freqInc;
+      //Setup lookahead for playhead 
+      if(truncPlayhead + 1 > TRAJECTORY_RESOLUTION){
+          truncPlayheadNext = (truncPlayhead+1) - TRAJECTORY_RESOLUTION;
+      }
+      else{truncPlayheadNext = truncPlayhead+1;}
+
+      //interpolate between points in wavetable and write to buffer
+      wavetableToBlockBuffer[i] = LERP(wavetableInterpolated[truncPlayhead], 
+                                      wavetableInterpolated[truncPlayheadNext],  
+                                      playheadFrac);
+      playhead = playhead + freqInc;
    }
 
-  //OUTPUT LOOP:: simple for loop, integer index rather than 
-  //pointers to 32 bit packed data. 
+  //OUTPUT LOOP:: simple for loop, integer index rather than pointers to 32 bit packed data 
+  //(The data packing is an optimization used by some other objects in the Teensy Audio Library but not necessary for our purposes)
+  //NOTE: The processes in this for loop could technically be carried out in the previous one...
+  //...I've done it this way because I personally find it easier to visualize as two seperate processes.
+  //Feel free to combine them, if it's clearer to you that way! 
   for (int i = 0; i < AUDIO_BLOCK_SAMPLES; i++) {
-      // write buffer into to outgoing block
+      //write buffer into to outgoing block
       //terrain amplitude acts as level control
       block->data[i] = wavetableToBlockBuffer[i] * _terrainAmplitude; 
   }
