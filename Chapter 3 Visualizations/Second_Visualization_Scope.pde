@@ -4,7 +4,7 @@ import oscP5.*;
 OscP5 oscP5;
 NetAddress address; 
 
-float[] wt = new float[1024];
+float[] wt = new float[1024]; //wavetable array
 int j = 0;
 
 void setup(){
@@ -16,11 +16,11 @@ size(1024, 500);
 }
 
 void draw(){
-  background(0);
-  print2Screen();
+  background(0); //Refresh black background
+  printToScreen(); //print the current array to screen
 }
 
-/* incoming osc message are forwarded to the oscEvent method. */
+//Update the wavetable array from the incoming message
 void oscEvent(OscMessage theOscMessage) {
   
   println("msg: " , theOscMessage.get(0).floatValue());
@@ -30,7 +30,8 @@ void oscEvent(OscMessage theOscMessage) {
   //println(j);  
 }
 
-void print2Screen(){
+//Print the current array to screen
+void printToScreen(){
   int pix;
   int pix2;
   for(int i = 0; i < 1024; i++){
