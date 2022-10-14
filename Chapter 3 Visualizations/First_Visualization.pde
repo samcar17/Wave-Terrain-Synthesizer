@@ -1,5 +1,5 @@
 //NOTE: This was a very brief visualization test that I did at the beginning of the process, while I was still figuring wave terrain out.
-//As such, this could definitely be implemented more efficiently and clearly, but it exists here to document the development process.
+//As such, this could definitely be implemented more efficiently and clearly, but it exists as a document the of development process.
 //See the second visualization and the final Teensy implementation for better implementations. 
 
 import netP5.*;
