@@ -70,6 +70,7 @@ void draw(){
 
   movingVal -= speed;
   
+  //Calculate terrain:
   float yoffset = movingVal;
    for(int y = 0; y < rows; y++){
     float xoffset = movingVal; 
