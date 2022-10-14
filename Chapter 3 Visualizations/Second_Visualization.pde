@@ -12,8 +12,8 @@ float orbitVal;
 
 float x, y, xNext, yNext, xTrunc, xNextTrunc, x2ahead, xFrac, yTrunc, yNextTrunc, y2ahead, xaFrac, yFrac, orbitTrunc, orbitNextTrunc, orbitFrac; //interpolation variables
 
-
-int orbitRes = 1024;
+//NOTE: At this point in the project, I was using the term "orbit" to refer to the trajectory (with reference to Roads). 
+int orbitRes = 1024;  
 float radius = 0.2;
 float xOffset = 0.3;
 float yOffset = 0.3;
@@ -26,21 +26,21 @@ float[] floatAr = new float[orbitRes];
 
 float[] pixelLocationMem = new float[orbitRes];
 
-String[] line = new String[1024*1024];
+String line;
 float[] pix = new float[1024*1024];
 byte b1; 
 byte b2;
 
 void setup() {
-  size(1024, 1024);
-  // Images must be in the "data" directory to load correctly
-  //img = loadImage("terrainTri.jpg");
-  //img.loadPixels();
-  //byte[] fileInput = loadBytes("sine16b.raw"); //input terrain file
+  size(1024, 1024); //size of display window
+  //NOTE: This version of the code used a floating point terrain,
+  //not the fixed point one created by the terrain generator in this repo/
+  //The generator in this repo can easily generate floating point terrains, though...
+  //...as the equations output floating point values...
+  //...so you just need to remove the mapping function on it's output :)
+  reader = createReader("terrain32.txt"); //load the file to be read. 
   
-  reader = createReader("terrain32.txt");
-  
-  parse();
+  parse();  //read the file
   
   //Orbit Setup
   for(int i = 0; i < orbitRes; i++){
@@ -51,7 +51,7 @@ void setup() {
     //println("x: ", orbitX[i], "y: ", orbitY[i]);
   }
   
- //Terrain Setup 
+ //Terrain Setup
   for(int i=0;i<pix.length;i++){
     
     displayTerrain[i%width][i/width] = color(int(map(pix[i], -1.0, 1.0, 0, 255))); //Reduce to 8bits into the displayTerrain array for display
@@ -68,17 +68,17 @@ void setup() {
 //DRAW LOOP-------------------------------------------------------------------------------------------------------------
 
 void draw() { 
-  //image(img, 0, 0);
+  //draw terrain in the background
   for(int x = 0; x < width; x++){
     for(int y = 0; y < height; y++){
-      set(x, y, displayTerrain[x][y]);
+      set(x, y, displayTerrain[x][y]);  
     }
   }
   
   stroke(255, 0, 0);
-  updateOrbit();
+  updateOrbit(); //update trajectory location
   
-  //float pixelLocation; //location of our point in the pixel array
+  //
   for(int i = 0; i < orbitRes; i++){
     x = map(orbitX[i], -1, 1, 0, width);
     y = map(orbitY[i], -1, 1, 0, height);
@@ -132,11 +132,11 @@ void sendOsc(float input){
   oscP5.send(myMessage, chuck); 
 }
 
-void updateOrbit(){
-  xOffset = map(mouseX, 0, 1024, -1.0, 1.0);
+void updateOrbit(){                           //calculate trajectory
+  xOffset = map(mouseX, 0, 1024, -1.0, 1.0);  //add offsets from mouse's location
   yOffset = map(mouseY, 0, 1024, -1.0, 1.0);
   
-  for(int i = 0; i < orbitRes; i++){
+  for(int i = 0; i < orbitRes; i++){          //polar to cartesian conversion 
     float theta = (PI*2/orbitRes);
     float angle = theta*i;
     orbitX[i] = (radius*cos(angle)) + xOffset;
@@ -145,14 +145,14 @@ void updateOrbit(){
   }
 }
 
-void mousePressed(){
+void mousePressed(){                  //if the mouse is pressed, send an OSC message with the trajectory's values
   for(int i = 0; i < orbitRes; i++){
     sendOsc(floatAr[i]);
     println(floatAr[i]);  
   }
 }
 
-void mouseWheel(MouseEvent event) {
+void mouseWheel(MouseEvent event) {   //if the mousewheel is scrolled make the radius bigger or smaller
   float e = event.getCount();
   if(e == 1.0 && radius < 1.99){
     radius = radius + 0.01;
@@ -168,11 +168,11 @@ void mouseWheel(MouseEvent event) {
   }
 }
 
-void parse(){
+void parse(){                             //read terrain into memory from file
   try {
-    for(int i = 0; i < pix.length; i++){
-      line[i] = reader.readLine();
-      pix[i] = float(line[i]);
+    for(int i = 0; i < pix.length; i++){ 
+      line = reader.readLine();           //read a line into memory. 
+      pix[i] = float(line);               //convert it to a float 
       //println(line[i]);
     }
     reader.close();
