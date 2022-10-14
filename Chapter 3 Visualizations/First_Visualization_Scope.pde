@@ -54,5 +54,4 @@ void oscEvent(OscMessage waveMsg){
       waveformLocal[i] = waveMsg.get(i).floatValue();
     }
     println(waveMsg.addrPattern());
-  //}
 }
