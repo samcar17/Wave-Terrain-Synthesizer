@@ -1,4 +1,9 @@
 # Wave-Terrain-Synthesizer
+---
+**NEWS:** Firmware version 1.1 forthcoming.  
+- Greatly improves efficieny, fixes a bug with scale control, and adds trajectory morph control via "Z" CV input. 
+- Video demo: https://www.youtube.com/watch?v=_I_Bj-A8xkg  
+---
 
 This is a repo for the wave terrain synthesizer module described in my masters thesis. 
 
